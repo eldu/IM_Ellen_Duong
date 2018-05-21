@@ -1,6 +1,8 @@
 
 // This file exports available shaders to the GUI.
 
+export {default as Watercolor} from './watercolor-post'
+
 // don't worry about this one. This is just to apply no filter
 export function None(renderer, scene, camera) {
     return {

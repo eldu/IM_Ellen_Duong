@@ -8,6 +8,10 @@ export var textureLoaded = new Promise((resolve, reject) => {
     (new THREE.TextureLoader()).load(require('./assets/wahoo.bmp'), function(texture) {
         resolve(texture);
     })
+
+    // (new THREE.TextureLoader()).load(require('./assets/ivysaur-diffuse.jpg'), function(texture) {
+    //     resolve(texture);
+    // })
 })
 
 export var objLoaded = new Promise((resolve, reject) => {
@@ -16,4 +20,10 @@ export var objLoaded = new Promise((resolve, reject) => {
         geo.computeBoundingSphere();
         resolve(geo);
     });
+
+    // (new THREE.OBJLoader()).load(require('./assets/ivysaur.obj'), function(obj) {
+    //     var geo = obj.children[0].geometry;
+    //     geo.computeBoundingSphere();
+    //     resolve(geo);
+    // });
 })
