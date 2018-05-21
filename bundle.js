@@ -63,11 +63,17 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 10);
+/******/ 	return __webpack_require__(__webpack_require__.s = 11);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
+/***/ (function(module, exports) {
+
+module.exports = "\n// we use this vertex shader for the post process steps. All we do is copy the uv value and set position appropriately\n\nvarying vec2 f_uv;\nvarying vec3 f_position;\n\nvoid main() {\n    f_uv = uv;\n    f_position = position;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n}\n\n\n"
+
+/***/ }),
+/* 1 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -43366,12 +43372,6 @@ function CanvasRenderer() {
 
 
 /***/ }),
-/* 1 */
-/***/ (function(module, exports) {
-
-module.exports = "\n// we use this vertex shader for the post process steps. All we do is copy the uv value and set position appropriately\n\nvarying vec2 f_uv;\nvarying vec3 f_position;\n\nvoid main() {\n    f_uv = uv;\n    f_position = position;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n}\n\n\n"
-
-/***/ }),
 /* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -43380,11 +43380,11 @@ module.exports = "\n// we use this vertex shader for the post process steps. All
  */
 
 module.exports = function(THREE) {
-  var CopyShader = EffectComposer.CopyShader = __webpack_require__(28)
-    , RenderPass = EffectComposer.RenderPass = __webpack_require__(31)(THREE)
-    , ShaderPass = EffectComposer.ShaderPass = __webpack_require__(32)(THREE, EffectComposer)
-    , MaskPass = EffectComposer.MaskPass = __webpack_require__(30)(THREE)
-    , ClearMaskPass = EffectComposer.ClearMaskPass = __webpack_require__(29)(THREE)
+  var CopyShader = EffectComposer.CopyShader = __webpack_require__(31)
+    , RenderPass = EffectComposer.RenderPass = __webpack_require__(34)(THREE)
+    , ShaderPass = EffectComposer.ShaderPass = __webpack_require__(35)(THREE, EffectComposer)
+    , MaskPass = EffectComposer.MaskPass = __webpack_require__(33)(THREE)
+    , ClearMaskPass = EffectComposer.ClearMaskPass = __webpack_require__(32)(THREE)
 
   function EffectComposer( renderer, renderTarget ) {
     this.renderer = renderer;
@@ -43535,21 +43535,31 @@ Object.defineProperty(exports, "__esModule", {
 
 // this file is just for convenience. it sets up loading the mario obj and texture
 
-var THREE = __webpack_require__(0);
-__webpack_require__(33)(THREE);
+var THREE = __webpack_require__(1);
+__webpack_require__(36)(THREE);
 
 var textureLoaded = exports.textureLoaded = new Promise(function (resolve, reject) {
-    new THREE.TextureLoader().load(__webpack_require__(26), function (texture) {
+    new THREE.TextureLoader().load(__webpack_require__(29), function (texture) {
         resolve(texture);
     });
+
+    // (new THREE.TextureLoader()).load(require('./assets/ivysaur-diffuse.jpg'), function(texture) {
+    //     resolve(texture);
+    // })
 });
 
 var objLoaded = exports.objLoaded = new Promise(function (resolve, reject) {
-    new THREE.OBJLoader().load(__webpack_require__(27), function (obj) {
+    new THREE.OBJLoader().load(__webpack_require__(30), function (obj) {
         var geo = obj.children[0].geometry;
         geo.computeBoundingSphere();
         resolve(geo);
     });
+
+    // (new THREE.OBJLoader()).load(require('./assets/ivysaur.obj'), function(obj) {
+    //     var geo = obj.children[0].geometry;
+    //     geo.computeBoundingSphere();
+    //     resolve(geo);
+    // });
 });
 
 /***/ }),
@@ -43562,10 +43572,16 @@ module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nunifor
 /* 5 */
 /***/ (function(module, exports) {
 
-module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nuniform float u_radius; // Radius of blur\nuniform float u_width;\nuniform float u_height;\nuniform vec2 u_dir; // Direction of blur\nvarying vec2 f_uv; // texture coordinate\nvarying vec3 f_position;\n\n// tDiffuse is a special uniform sampler that THREE.js will bind the previously rendered frame to\n// References: https://en.wikipedia.org/wiki/Gaussian_blur\n//             http://dev.theomader.com/gaussian-kernel-calculator/\n//             https://github.com/mattdesl/lwjgl-basics/wiki/ShaderLesson5\n// \n\n// Cannot create an array in glsl?\n// const float weight[4] = {float[4](}0.383103, 0.241843, 0.060626, 0.00598};\n\nvoid main() {\n\n    vec4 col = texture2D(tDiffuse, f_uv);\n    float blur = u_radius / (u_width * u_height);\n\tvec4 sum = vec4(0.0); // Sum of the color\n\n\t// TODO: is anything added if coord out of bounds? \n\t//       I would expect it would add nothing or error\n\t// vec4 texture2D(sampler2D sampler, vec2 coord, float bias)\n\tsum += texture2D(tDiffuse, vec2(f_uv.x - 4.0 * blur * u_dir.x, f_uv.y - 4.0 * blur * u_dir.y)) * 0.0162162162;\n\tsum += texture2D(tDiffuse, vec2(f_uv.x + 4.0 * blur * u_dir.x, f_uv.y + 4.0 * blur * u_dir.y)) * 0.0162162162;\n\n\tsum += texture2D(tDiffuse, vec2(f_uv.x - 3.0 * blur * u_dir.x, f_uv.y - 3.0 * blur * u_dir.y)) * 0.0540540541;\n\tsum += texture2D(tDiffuse, vec2(f_uv.x + 3.0 * blur * u_dir.x, f_uv.y + 3.0 * blur * u_dir.y)) * 0.0540540541;\n\n\tsum += texture2D(tDiffuse, vec2(f_uv.x - 2.0 * blur * u_dir.x, f_uv.y - 2.0 * blur * u_dir.y)) * 0.1216216216;\n\tsum += texture2D(tDiffuse, vec2(f_uv.x + 2.0 * blur * u_dir.x, f_uv.y + 2.0 * blur * u_dir.y)) * 0.1216216216;\n\n\tsum += texture2D(tDiffuse, vec2(f_uv.x - 1.0 * blur * u_dir.x, f_uv.y - 1.0 * blur * u_dir.y)) * 0.1945945946;\n\tsum += texture2D(tDiffuse, vec2(f_uv.x + 1.0 * blur * u_dir.x, f_uv.y + 1.0 * blur * u_dir.y)) * 0.1945945946;\n\n\tsum += texture2D(tDiffuse, vec2(f_uv.x, f_uv.y)) * 0.2270270270;\n\n    gl_FragColor = vec4(sum.rgb, 1.0);\n}   "
+module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nvarying vec2 f_uv; // texture coordinate\nvarying vec3 f_position;\n\n// Isolate the bright moments of the image\nvoid main() {\n    vec4 col = texture2D(tDiffuse, f_uv);\n\n    float gray = dot(col.rgb, vec3(0.299, 0.587, 0.114));\n\n    gl_FragColor = (1.0 - step(gray, u_amount)) * col;\n}"
 
 /***/ }),
 /* 6 */
+/***/ (function(module, exports) {
+
+module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nuniform float u_radius; // Radius of blur\nuniform float u_width;\nuniform float u_height;\nuniform vec2 u_dir; // Direction of blur\nvarying vec2 f_uv; // texture coordinate\nvarying vec3 f_position;\n\n// tDiffuse is a special uniform sampler that THREE.js will bind the previously rendered frame to\n// References: https://en.wikipedia.org/wiki/Gaussian_blur\n//             http://dev.theomader.com/gaussian-kernel-calculator/\n//             https://github.com/mattdesl/lwjgl-basics/wiki/ShaderLesson5\n// \n\n// Cannot create an array in glsl?\n// const float weight[4] = {float[4](}0.383103, 0.241843, 0.060626, 0.00598};\n\nvoid main() {\n\n    vec4 col = texture2D(tDiffuse, f_uv);\n    float blur = u_radius / (u_width * u_height);\n\tvec4 sum = vec4(0.0); // Sum of the color\n\n\t// TODO: is anything added if coord out of bounds? \n\t//       I would expect it would add nothing or error\n\t// vec4 texture2D(sampler2D sampler, vec2 coord, float bias)\n\tsum += texture2D(tDiffuse, vec2(f_uv.x - 4.0 * blur * u_dir.x, f_uv.y - 4.0 * blur * u_dir.y)) * 0.0162162162;\n\tsum += texture2D(tDiffuse, vec2(f_uv.x + 4.0 * blur * u_dir.x, f_uv.y + 4.0 * blur * u_dir.y)) * 0.0162162162;\n\n\tsum += texture2D(tDiffuse, vec2(f_uv.x - 3.0 * blur * u_dir.x, f_uv.y - 3.0 * blur * u_dir.y)) * 0.0540540541;\n\tsum += texture2D(tDiffuse, vec2(f_uv.x + 3.0 * blur * u_dir.x, f_uv.y + 3.0 * blur * u_dir.y)) * 0.0540540541;\n\n\tsum += texture2D(tDiffuse, vec2(f_uv.x - 2.0 * blur * u_dir.x, f_uv.y - 2.0 * blur * u_dir.y)) * 0.1216216216;\n\tsum += texture2D(tDiffuse, vec2(f_uv.x + 2.0 * blur * u_dir.x, f_uv.y + 2.0 * blur * u_dir.y)) * 0.1216216216;\n\n\tsum += texture2D(tDiffuse, vec2(f_uv.x - 1.0 * blur * u_dir.x, f_uv.y - 1.0 * blur * u_dir.y)) * 0.1945945946;\n\tsum += texture2D(tDiffuse, vec2(f_uv.x + 1.0 * blur * u_dir.x, f_uv.y + 1.0 * blur * u_dir.y)) * 0.1945945946;\n\n\tsum += texture2D(tDiffuse, vec2(f_uv.x, f_uv.y)) * 0.2270270270;\n\n    gl_FragColor = vec4(sum.rgb, 1.0);\n}   "
+
+/***/ }),
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -43576,15 +43592,15 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.setupGUI = setupGUI;
 
-var _shaders = __webpack_require__(19);
+var _shaders = __webpack_require__(21);
 
 var Shaders = _interopRequireWildcard(_shaders);
 
-var _post = __webpack_require__(15);
+var _post = __webpack_require__(16);
 
 var Post = _interopRequireWildcard(_post);
 
-var _datGui = __webpack_require__(23);
+var _datGui = __webpack_require__(26);
 
 var _datGui2 = _interopRequireDefault(_datGui);
 
@@ -43655,13 +43671,13 @@ function setupGUI(shaderSet, postProcessSet) {
 }
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = __webpack_require__.p + "index.html";
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports) {
 
 // stats.js - http://github.com/mrdoob/stats.js
@@ -43673,7 +43689,7 @@ a+"px",m=b,r=0);return b},update:function(){l=this.end()}}};"object"===typeof mo
 
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports) {
 
 module.exports = function( THREE ) {
@@ -44699,26 +44715,26 @@ module.exports = function( THREE ) {
 
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var _statsJs = __webpack_require__(8);
+var _statsJs = __webpack_require__(9);
 
 var _statsJs2 = _interopRequireDefault(_statsJs);
 
 var _mario = __webpack_require__(3);
 
-var _setup = __webpack_require__(6);
+var _setup = __webpack_require__(7);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-__webpack_require__(7);
+__webpack_require__(8);
 
-var THREE = __webpack_require__(0);
-var OrbitControls = __webpack_require__(9)(THREE);
+var THREE = __webpack_require__(1);
+var OrbitControls = __webpack_require__(10)(THREE);
 
 window.addEventListener('load', function () {
     var stats = new _statsJs2.default();
@@ -44733,7 +44749,7 @@ window.addEventListener('load', function () {
     var renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x999999, 1.0);
+    renderer.setClearColor(0xeeeeee, 1.0);
 
     var controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -44794,7 +44810,7 @@ window.addEventListener('load', function () {
 });
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -44804,7 +44820,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.default = Bloom;
-var THREE = __webpack_require__(0);
+var THREE = __webpack_require__(1);
 var EffectComposer = __webpack_require__(2)(THREE);
 
 var options = {
@@ -44827,8 +44843,8 @@ var BrightnessFilterPass = new EffectComposer.ShaderPass({
             value: options.amount
         }
     },
-    vertexShader: __webpack_require__(1),
-    fragmentShader: __webpack_require__(34)
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(5)
 });
 
 var BloomShaderX = new EffectComposer.ShaderPass({
@@ -44854,7 +44870,7 @@ var BloomShaderX = new EffectComposer.ShaderPass({
             value: new THREE.Vector2(1.0, 0.0)
         }
     },
-    vertexShader: __webpack_require__(1),
+    vertexShader: __webpack_require__(0),
     fragmentShader: __webpack_require__(4)
 });
 
@@ -44881,7 +44897,7 @@ var BloomShaderY = new EffectComposer.ShaderPass({
             value: new THREE.Vector2(0.0, 1.0)
         }
     },
-    vertexShader: __webpack_require__(1),
+    vertexShader: __webpack_require__(0),
     fragmentShader: __webpack_require__(4)
 });
 
@@ -44896,8 +44912,8 @@ var SuperimposeTextures = new EffectComposer.ShaderPass({
             value: null
         }
     },
-    vertexShader: __webpack_require__(1),
-    fragmentShader: __webpack_require__(43)
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(45)
 });
 
 function Bloom(renderer, scene, camera) {
@@ -44952,7 +44968,7 @@ function Bloom(renderer, scene, camera) {
 }
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -44962,7 +44978,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.default = Gaussian;
-var THREE = __webpack_require__(0);
+var THREE = __webpack_require__(1);
 var EffectComposer = __webpack_require__(2)(THREE);
 
 var options = {
@@ -44994,8 +45010,8 @@ var GaussianShaderX = new EffectComposer.ShaderPass({
             value: new THREE.Vector2(1.0, 0.0)
         }
     },
-    vertexShader: __webpack_require__(1),
-    fragmentShader: __webpack_require__(5)
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(6)
 });
 
 var GaussianShaderY = new EffectComposer.ShaderPass({
@@ -45021,8 +45037,8 @@ var GaussianShaderY = new EffectComposer.ShaderPass({
             value: new THREE.Vector2(0.0, 1.0)
         }
     },
-    vertexShader: __webpack_require__(1),
-    fragmentShader: __webpack_require__(5)
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(6)
 });
 
 function Gaussian(renderer, scene, camera) {
@@ -45060,7 +45076,7 @@ function Gaussian(renderer, scene, camera) {
 }
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -45070,7 +45086,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.default = Grayscale;
-var THREE = __webpack_require__(0);
+var THREE = __webpack_require__(1);
 var EffectComposer = __webpack_require__(2)(THREE);
 
 var options = {
@@ -45088,8 +45104,8 @@ var GrayscaleShader = new EffectComposer.ShaderPass({
             value: options.amount
         }
     },
-    vertexShader: __webpack_require__(1),
-    fragmentShader: __webpack_require__(35)
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(37)
 });
 
 function Grayscale(renderer, scene, camera) {
@@ -45121,7 +45137,7 @@ function Grayscale(renderer, scene, camera) {
 }
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -45131,7 +45147,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.default = Hatching;
-var THREE = __webpack_require__(0);
+var THREE = __webpack_require__(1);
 var EffectComposer = __webpack_require__(2)(THREE);
 
 var options = {
@@ -45149,8 +45165,8 @@ var HatchingShader = new EffectComposer.ShaderPass({
             value: options.amount
         }
     },
-    vertexShader: __webpack_require__(1),
-    fragmentShader: __webpack_require__(36)
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(38)
 });
 
 function Hatching(renderer, scene, camera) {
@@ -45182,7 +45198,7 @@ function Hatching(renderer, scene, camera) {
 }
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -45191,9 +45207,18 @@ function Hatching(renderer, scene, camera) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+
+var _watercolorPost = __webpack_require__(20);
+
+Object.defineProperty(exports, 'Watercolor', {
+    enumerable: true,
+    get: function get() {
+        return _interopRequireDefault(_watercolorPost).default;
+    }
+});
 exports.None = None;
 
-var _grayscale = __webpack_require__(13);
+var _grayscale = __webpack_require__(14);
 
 Object.defineProperty(exports, 'Grayscale', {
     enumerable: true,
@@ -45202,7 +45227,7 @@ Object.defineProperty(exports, 'Grayscale', {
     }
 });
 
-var _pointillism = __webpack_require__(17);
+var _pointillism = __webpack_require__(18);
 
 Object.defineProperty(exports, 'Pointillism', {
     enumerable: true,
@@ -45211,7 +45236,7 @@ Object.defineProperty(exports, 'Pointillism', {
     }
 });
 
-var _gaussian = __webpack_require__(12);
+var _gaussian = __webpack_require__(13);
 
 Object.defineProperty(exports, 'Gaussian', {
     enumerable: true,
@@ -45220,7 +45245,7 @@ Object.defineProperty(exports, 'Gaussian', {
     }
 });
 
-var _bloom = __webpack_require__(11);
+var _bloom = __webpack_require__(12);
 
 Object.defineProperty(exports, 'Bloom', {
     enumerable: true,
@@ -45229,7 +45254,7 @@ Object.defineProperty(exports, 'Bloom', {
     }
 });
 
-var _hatching = __webpack_require__(14);
+var _hatching = __webpack_require__(15);
 
 Object.defineProperty(exports, 'Hatching', {
     enumerable: true,
@@ -45238,7 +45263,7 @@ Object.defineProperty(exports, 'Hatching', {
     }
 });
 
-var _vignette = __webpack_require__(18);
+var _vignette = __webpack_require__(19);
 
 Object.defineProperty(exports, 'Vignette', {
     enumerable: true,
@@ -45247,7 +45272,7 @@ Object.defineProperty(exports, 'Vignette', {
     }
 });
 
-var _linear = __webpack_require__(16);
+var _linear = __webpack_require__(17);
 
 Object.defineProperty(exports, 'Linear', {
     enumerable: true,
@@ -45257,8 +45282,6 @@ Object.defineProperty(exports, 'Linear', {
 });
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-// This file exports available shaders to the GUI.
 
 // don't worry about this one. This is just to apply no filter
 function None(renderer, scene, camera) {
@@ -45274,7 +45297,7 @@ function None(renderer, scene, camera) {
 // follow this syntax to make your shaders available to the GUI
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -45284,7 +45307,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.default = Linear;
-var THREE = __webpack_require__(0);
+var THREE = __webpack_require__(1);
 var EffectComposer = __webpack_require__(2)(THREE);
 
 var options = {
@@ -45302,8 +45325,8 @@ var LinearShader = new EffectComposer.ShaderPass({
             value: options.amount
         }
     },
-    vertexShader: __webpack_require__(1),
-    fragmentShader: __webpack_require__(39)
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(41)
 });
 
 function Linear(renderer, scene, camera) {
@@ -45335,7 +45358,7 @@ function Linear(renderer, scene, camera) {
 }
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -45345,7 +45368,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.default = Pointillism;
-var THREE = __webpack_require__(0);
+var THREE = __webpack_require__(1);
 var EffectComposer = __webpack_require__(2)(THREE);
 
 var options = {
@@ -45363,8 +45386,8 @@ var PointillismShader = new EffectComposer.ShaderPass({
             value: options.amount
         }
     },
-    vertexShader: __webpack_require__(1),
-    fragmentShader: __webpack_require__(42)
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(44)
 });
 
 function Pointillism(renderer, scene, camera) {
@@ -45396,7 +45419,7 @@ function Pointillism(renderer, scene, camera) {
 }
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -45406,7 +45429,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports.default = Vignette;
-var THREE = __webpack_require__(0);
+var THREE = __webpack_require__(1);
 var EffectComposer = __webpack_require__(2)(THREE);
 
 var options = {
@@ -45443,8 +45466,8 @@ var VignetteShader = new EffectComposer.ShaderPass({
             value: options.edge1
         }
     },
-    vertexShader: __webpack_require__(1),
-    fragmentShader: __webpack_require__(46)
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(49)
 });
 
 function Vignette(renderer, scene, camera) {
@@ -45484,46 +45507,6 @@ function Vignette(renderer, scene, camera) {
 }
 
 /***/ }),
-/* 19 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _lambert = __webpack_require__(20);
-
-Object.defineProperty(exports, 'Lambert', {
-  enumerable: true,
-  get: function get() {
-    return _interopRequireDefault(_lambert).default;
-  }
-});
-
-var _toonshader = __webpack_require__(22);
-
-Object.defineProperty(exports, 'ToonShader', {
-  enumerable: true,
-  get: function get() {
-    return _interopRequireDefault(_toonshader).default;
-  }
-});
-
-var _noise = __webpack_require__(21);
-
-Object.defineProperty(exports, 'Noise', {
-  enumerable: true,
-  get: function get() {
-    return _interopRequireDefault(_noise).default;
-  }
-});
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/***/ }),
 /* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -45533,84 +45516,178 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.default = Watercolor;
+var THREE = __webpack_require__(1);
+var EffectComposer = __webpack_require__(2)(THREE);
 
-exports.default = function (renderer, scene, camera) {
+var options = {
+    amount: 0.4,
+    radius: 17,
+    width: 100,
+    height: 100,
+    hatch: 800
+};
 
-    var Shader = {
+var normalClone;
+
+var WatercolorPass = new EffectComposer.ShaderPass({
+    uniforms: {
+        tDiffuse: {
+            type: 't',
+            value: null
+        },
+        u_amount: {
+            type: 'f',
+            value: options.hatch
+        }
+    },
+    vertexShader: __webpack_require__(52),
+    fragmentShader: __webpack_require__(51)
+});
+
+var BrightnessFilterPass = new EffectComposer.ShaderPass({
+    uniforms: {
+        tDiffuse: {
+            type: 't',
+            value: null
+        },
+        u_amount: {
+            type: 'f',
+            value: options.amount
+        }
+    },
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(5)
+});
+
+var BloomShaderX = new EffectComposer.ShaderPass({
+    uniforms: {
+        tDiffuse: {
+            type: 't',
+            value: null
+        },
+        u_radius: {
+            type: 'f',
+            value: options.radius
+        },
+        u_width: {
+            type: 'f',
+            value: options.width
+        },
+        u_height: {
+            type: 'f',
+            value: options.height
+        },
+        u_dir: {
+            type: 'v2',
+            value: new THREE.Vector2(1.0, 0.0)
+        }
+    },
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(4)
+});
+
+var BloomShaderY = new EffectComposer.ShaderPass({
+    uniforms: {
+        tDiffuse: {
+            type: 't',
+            value: null
+        },
+        u_radius: {
+            type: 'f',
+            value: options.radius
+        },
+        u_width: {
+            type: 'f',
+            value: options.width
+        },
+        u_height: {
+            type: 'f',
+            value: options.height
+        },
+        u_dir: {
+            type: 'v2',
+            value: new THREE.Vector2(0.0, 1.0)
+        }
+    },
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(4)
+});
+
+var SuperimposeTextures = new EffectComposer.ShaderPass({
+    uniforms: {
+        tDiffuse: {
+            type: 't',
+            value: null
+        },
+        tClone: {
+            type: 't',
+            value: null
+        }
+    },
+    vertexShader: __webpack_require__(0),
+    fragmentShader: __webpack_require__(46)
+});
+
+function Watercolor(renderer, scene, camera) {
+    // Pass width and height of the screen to the shader
+    // Not necessarily shaders
+    options.width = renderer.getSize().width;
+    options.height = renderer.getSize().height;
+
+    // this is the THREE.js object for doing post-process effects
+    var composer = new EffectComposer(renderer);
+    var renderComposer = new EffectComposer(renderer);
+
+    // first render the scene normally and add that as the first pass
+    var normalRender = new EffectComposer.RenderPass(scene, camera);
+
+    composer.addPass(normalRender);
+    renderComposer.addPass(normalRender);
+
+    // Isolate Bright Moments
+    composer.addPass(BrightnessFilterPass);
+
+    // // Just Gaussian Blur
+    composer.addPass(BloomShaderX);
+    composer.addPass(BloomShaderY);
+
+    composer.addPass(WatercolorPass);
+
+    SuperimposeTextures.material.uniforms.tClone.value = renderComposer.renderTarget2.texture;
+
+    // Superimpose them
+    composer.addPass(SuperimposeTextures);
+
+    // set this to true on the shader for your last pass to write to the screen
+    SuperimposeTextures.renderToScreen = true;
+
+    // set this to true on the shader for your last pass to write to the screen
+    //WatercolorPass.renderToScreen = true;  
+
+    return {
         initGUI: function initGUI(gui) {
-            gui.addColor(options, 'lightColor').onChange(function (val) {
-                Shader.material.uniforms.u_lightCol.value = new THREE.Color(val);
+            gui.add(options, 'hatch', 200, 1000).onChange(function (val) {
+                WatercolorPass.material.uniforms.u_amount.value = val;
             });
-            gui.add(options, 'lightIntensity').onChange(function (val) {
-                Shader.material.uniforms.u_lightIntensity.value = val;
+
+            gui.add(options, 'radius', 0, 100).onChange(function (val) {
+                BloomShaderX.material.uniforms.u_radius.value = val;
+                BloomShaderY.material.uniforms.u_radius.value = val;
             });
-            gui.addColor(options, 'albedo').onChange(function (val) {
-                Shader.material.uniforms.u_albedo.value = new THREE.Color(val);
-            });
-            gui.addColor(options, 'ambient').onChange(function (val) {
-                Shader.material.uniforms.u_ambient.value = new THREE.Color(val);
-            });
-            gui.add(options, 'useTexture').onChange(function (val) {
-                Shader.material.uniforms.u_useTexture.value = val;
+
+            gui.add(options, 'amount', 0, 1).onChange(function (val) {
+                BrightnessFilterPass.material.uniforms.u_amount.value = val;
             });
         },
 
-        material: new THREE.ShaderMaterial({
-            uniforms: {
-                texture: {
-                    type: "t",
-                    value: null
-                },
-                u_useTexture: {
-                    type: 'i',
-                    value: options.useTexture
-                },
-                u_albedo: {
-                    type: 'v3',
-                    value: new THREE.Color(options.albedo)
-                },
-                u_ambient: {
-                    type: 'v3',
-                    value: new THREE.Color(options.ambient)
-                },
-                u_lightPos: {
-                    type: 'v3',
-                    value: new THREE.Vector3(30, 50, 40)
-                },
-                u_lightCol: {
-                    type: 'v3',
-                    value: new THREE.Color(options.lightColor)
-                },
-                u_lightIntensity: {
-                    type: 'f',
-                    value: options.lightIntensity
-                }
-            },
-            vertexShader: __webpack_require__(38),
-            fragmentShader: __webpack_require__(37)
-        })
-
-        // once the Mario texture loads, bind it to the material
-    };_mario.textureLoaded.then(function (texture) {
-        Shader.material.uniforms.texture.value = texture;
-    });
-
-    return Shader;
-};
-
-var _mario = __webpack_require__(3);
-
-var THREE = __webpack_require__(0);
-
-
-// options for lambert shader
-var options = {
-    lightColor: '#ffffff',
-    lightIntensity: 2,
-    albedo: '#dddddd',
-    ambient: '#111111',
-    useTexture: true
-};
+        render: function render() {
+            ;
+            renderComposer.render();
+            composer.render();
+        }
+    };
+}
 
 /***/ }),
 /* 21 */
@@ -45620,90 +45697,46 @@ var options = {
 
 
 Object.defineProperty(exports, "__esModule", {
-    value: true
+  value: true
 });
 
-exports.default = function (renderer, scene, camera) {
+var _watercolor = __webpack_require__(25);
 
-    var Shader = {
-        initGUI: function initGUI(gui) {
-            gui.addColor(options, 'lightColor').onChange(function (val) {
-                Shader.material.uniforms.u_lightCol.value = new THREE.Color(val);
-            });
-            gui.add(options, 'lightIntensity').onChange(function (val) {
-                Shader.material.uniforms.u_lightIntensity.value = val;
-            });
-            gui.addColor(options, 'albedo').onChange(function (val) {
-                Shader.material.uniforms.u_albedo.value = new THREE.Color(val);
-            });
-            gui.addColor(options, 'ambient').onChange(function (val) {
-                Shader.material.uniforms.u_ambient.value = new THREE.Color(val);
-            });
-            gui.add(options, 'useTexture').onChange(function (val) {
-                Shader.material.uniforms.u_useTexture.value = val;
-            });
-        },
+Object.defineProperty(exports, 'Watercolor', {
+  enumerable: true,
+  get: function get() {
+    return _interopRequireDefault(_watercolor).default;
+  }
+});
 
-        material: new THREE.ShaderMaterial({
-            uniforms: {
-                texture: {
-                    type: "t",
-                    value: null
-                },
-                u_useTexture: {
-                    type: 'i',
-                    value: options.useTexture
-                },
-                u_albedo: {
-                    type: 'v3',
-                    value: new THREE.Color(options.albedo)
-                },
-                u_ambient: {
-                    type: 'v3',
-                    value: new THREE.Color(options.ambient)
-                },
-                u_lightPos: {
-                    type: 'v3',
-                    value: new THREE.Vector3(30, 50, 40)
-                },
-                u_lightCol: {
-                    type: 'v3',
-                    value: new THREE.Color(options.lightColor)
-                },
-                u_lightIntensity: {
-                    type: 'f',
-                    value: options.lightIntensity
-                },
-                u_camPos: {
-                    type: 'v3',
-                    value: camera.position
-                }
-            },
-            vertexShader: __webpack_require__(41),
-            fragmentShader: __webpack_require__(40)
-        })
+var _lambert = __webpack_require__(22);
 
-        // once the Mario texture loads, bind it to the material
-    };_mario.textureLoaded.then(function (texture) {
-        Shader.material.uniforms.texture.value = texture;
-    });
+Object.defineProperty(exports, 'Lambert', {
+  enumerable: true,
+  get: function get() {
+    return _interopRequireDefault(_lambert).default;
+  }
+});
 
-    return Shader;
-};
+var _toonshader = __webpack_require__(24);
 
-var _mario = __webpack_require__(3);
+Object.defineProperty(exports, 'ToonShader', {
+  enumerable: true,
+  get: function get() {
+    return _interopRequireDefault(_toonshader).default;
+  }
+});
 
-var THREE = __webpack_require__(0);
+var _noise = __webpack_require__(23);
 
+Object.defineProperty(exports, 'Noise', {
+  enumerable: true,
+  get: function get() {
+    return _interopRequireDefault(_noise).default;
+  }
+});
 
-// options for lambert shader
-var options = {
-    lightColor: '#ffffff',
-    lightIntensity: 2,
-    albedo: '#dddddd',
-    ambient: '#111111',
-    useTexture: true
-};
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /***/ }),
 /* 22 */
@@ -45766,14 +45799,10 @@ exports.default = function (renderer, scene, camera) {
                 u_lightIntensity: {
                     type: 'f',
                     value: options.lightIntensity
-                },
-                u_camPos: {
-                    type: 'v3',
-                    value: camera.position
                 }
             },
-            vertexShader: __webpack_require__(45),
-            fragmentShader: __webpack_require__(44)
+            vertexShader: __webpack_require__(40),
+            fragmentShader: __webpack_require__(39)
         })
 
         // once the Mario texture loads, bind it to the material
@@ -45786,7 +45815,7 @@ exports.default = function (renderer, scene, camera) {
 
 var _mario = __webpack_require__(3);
 
-var THREE = __webpack_require__(0);
+var THREE = __webpack_require__(1);
 
 
 // options for lambert shader
@@ -45802,11 +45831,290 @@ var options = {
 /* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(25)
-module.exports.color = __webpack_require__(24)
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+exports.default = function (renderer, scene, camera) {
+
+    var Shader = {
+        initGUI: function initGUI(gui) {
+            gui.addColor(options, 'lightColor').onChange(function (val) {
+                Shader.material.uniforms.u_lightCol.value = new THREE.Color(val);
+            });
+            gui.add(options, 'lightIntensity').onChange(function (val) {
+                Shader.material.uniforms.u_lightIntensity.value = val;
+            });
+            gui.addColor(options, 'albedo').onChange(function (val) {
+                Shader.material.uniforms.u_albedo.value = new THREE.Color(val);
+            });
+            gui.addColor(options, 'ambient').onChange(function (val) {
+                Shader.material.uniforms.u_ambient.value = new THREE.Color(val);
+            });
+            gui.add(options, 'useTexture').onChange(function (val) {
+                Shader.material.uniforms.u_useTexture.value = val;
+            });
+        },
+
+        material: new THREE.ShaderMaterial({
+            uniforms: {
+                texture: {
+                    type: "t",
+                    value: null
+                },
+                u_useTexture: {
+                    type: 'i',
+                    value: options.useTexture
+                },
+                u_albedo: {
+                    type: 'v3',
+                    value: new THREE.Color(options.albedo)
+                },
+                u_ambient: {
+                    type: 'v3',
+                    value: new THREE.Color(options.ambient)
+                },
+                u_lightPos: {
+                    type: 'v3',
+                    value: new THREE.Vector3(30, 50, 40)
+                },
+                u_lightCol: {
+                    type: 'v3',
+                    value: new THREE.Color(options.lightColor)
+                },
+                u_lightIntensity: {
+                    type: 'f',
+                    value: options.lightIntensity
+                },
+                u_camPos: {
+                    type: 'v3',
+                    value: camera.position
+                }
+            },
+            vertexShader: __webpack_require__(43),
+            fragmentShader: __webpack_require__(42)
+        })
+
+        // once the Mario texture loads, bind it to the material
+    };_mario.textureLoaded.then(function (texture) {
+        Shader.material.uniforms.texture.value = texture;
+    });
+
+    return Shader;
+};
+
+var _mario = __webpack_require__(3);
+
+var THREE = __webpack_require__(1);
+
+
+// options for lambert shader
+var options = {
+    lightColor: '#ffffff',
+    lightIntensity: 2,
+    albedo: '#dddddd',
+    ambient: '#111111',
+    useTexture: true
+};
 
 /***/ }),
 /* 24 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+exports.default = function (renderer, scene, camera) {
+
+    var Shader = {
+        initGUI: function initGUI(gui) {
+            gui.addColor(options, 'lightColor').onChange(function (val) {
+                Shader.material.uniforms.u_lightCol.value = new THREE.Color(val);
+            });
+            gui.add(options, 'lightIntensity').onChange(function (val) {
+                Shader.material.uniforms.u_lightIntensity.value = val;
+            });
+            gui.addColor(options, 'albedo').onChange(function (val) {
+                Shader.material.uniforms.u_albedo.value = new THREE.Color(val);
+            });
+            gui.addColor(options, 'ambient').onChange(function (val) {
+                Shader.material.uniforms.u_ambient.value = new THREE.Color(val);
+            });
+            gui.add(options, 'useTexture').onChange(function (val) {
+                Shader.material.uniforms.u_useTexture.value = val;
+            });
+        },
+
+        material: new THREE.ShaderMaterial({
+            uniforms: {
+                texture: {
+                    type: "t",
+                    value: null
+                },
+                u_useTexture: {
+                    type: 'i',
+                    value: options.useTexture
+                },
+                u_albedo: {
+                    type: 'v3',
+                    value: new THREE.Color(options.albedo)
+                },
+                u_ambient: {
+                    type: 'v3',
+                    value: new THREE.Color(options.ambient)
+                },
+                u_lightPos: {
+                    type: 'v3',
+                    value: new THREE.Vector3(30, 50, 40)
+                },
+                u_lightCol: {
+                    type: 'v3',
+                    value: new THREE.Color(options.lightColor)
+                },
+                u_lightIntensity: {
+                    type: 'f',
+                    value: options.lightIntensity
+                },
+                u_camPos: {
+                    type: 'v3',
+                    value: camera.position
+                }
+            },
+            vertexShader: __webpack_require__(48),
+            fragmentShader: __webpack_require__(47)
+        })
+
+        // once the Mario texture loads, bind it to the material
+    };_mario.textureLoaded.then(function (texture) {
+        Shader.material.uniforms.texture.value = texture;
+    });
+
+    return Shader;
+};
+
+var _mario = __webpack_require__(3);
+
+var THREE = __webpack_require__(1);
+
+
+// options for lambert shader
+var options = {
+    lightColor: '#ffffff',
+    lightIntensity: 2,
+    albedo: '#dddddd',
+    ambient: '#111111',
+    useTexture: true
+};
+
+/***/ }),
+/* 25 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+exports.default = function (renderer, scene, camera) {
+
+    var Shader = {
+        initGUI: function initGUI(gui) {
+            gui.addColor(options, 'lightColor').onChange(function (val) {
+                Shader.material.uniforms.u_lightCol.value = new THREE.Color(val);
+            });
+            gui.add(options, 'lightIntensity').onChange(function (val) {
+                Shader.material.uniforms.u_lightIntensity.value = val;
+            });
+            gui.addColor(options, 'albedo').onChange(function (val) {
+                Shader.material.uniforms.u_albedo.value = new THREE.Color(val);
+            });
+            gui.addColor(options, 'ambient').onChange(function (val) {
+                Shader.material.uniforms.u_ambient.value = new THREE.Color(val);
+            });
+            gui.add(options, 'useTexture').onChange(function (val) {
+                Shader.material.uniforms.u_useTexture.value = val;
+            });
+        },
+
+        material: new THREE.ShaderMaterial({
+            uniforms: {
+                texture: {
+                    type: "t",
+                    value: null
+                },
+                u_useTexture: {
+                    type: 'i',
+                    value: options.useTexture
+                },
+                u_albedo: {
+                    type: 'v3',
+                    value: new THREE.Color(options.albedo)
+                },
+                u_ambient: {
+                    type: 'v3',
+                    value: new THREE.Color(options.ambient)
+                },
+                u_lightPos: {
+                    type: 'v3',
+                    value: new THREE.Vector3(30, 50, 40)
+                },
+                u_lightCol: {
+                    type: 'v3',
+                    value: new THREE.Color(options.lightColor)
+                },
+                u_lightIntensity: {
+                    type: 'f',
+                    value: options.lightIntensity
+                },
+                u_camPos: {
+                    type: 'v3',
+                    value: camera.position
+                }
+            },
+            vertexShader: __webpack_require__(53),
+            fragmentShader: __webpack_require__(50)
+        })
+
+        // once the Mario texture loads, bind it to the material
+    };_mario.textureLoaded.then(function (texture) {
+        Shader.material.uniforms.texture.value = texture;
+    });
+
+    return Shader;
+};
+
+var _mario = __webpack_require__(3);
+
+var THREE = __webpack_require__(1);
+
+
+// options for lambert shader
+var options = {
+    lightColor: '#ffffff',
+    lightIntensity: 2,
+    albedo: '#dddddd',
+    ambient: '#111111',
+    useTexture: true
+};
+
+/***/ }),
+/* 26 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__(28)
+module.exports.color = __webpack_require__(27)
+
+/***/ }),
+/* 27 */
 /***/ (function(module, exports) {
 
 /**
@@ -46566,7 +46874,7 @@ dat.color.toString,
 dat.utils.common);
 
 /***/ }),
-/* 25 */
+/* 28 */
 /***/ (function(module, exports) {
 
 /**
@@ -50231,19 +50539,19 @@ dat.dom.dom,
 dat.utils.common);
 
 /***/ }),
-/* 26 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = __webpack_require__.p + "./assets/wahoo-1bfe66.bmp";
 
 /***/ }),
-/* 27 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = __webpack_require__.p + "./assets/wahoo-d362db.obj";
 
 /***/ }),
-/* 28 */
+/* 31 */
 /***/ (function(module, exports) {
 
 /**
@@ -50285,7 +50593,7 @@ module.exports = {
 
 
 /***/ }),
-/* 29 */
+/* 32 */
 /***/ (function(module, exports) {
 
 /**
@@ -50309,7 +50617,7 @@ module.exports = function(THREE) {
 };
 
 /***/ }),
-/* 30 */
+/* 33 */
 /***/ (function(module, exports) {
 
 /**
@@ -50386,7 +50694,7 @@ module.exports = function(THREE) {
 
 
 /***/ }),
-/* 31 */
+/* 34 */
 /***/ (function(module, exports) {
 
 /**
@@ -50449,7 +50757,7 @@ module.exports = function(THREE) {
 
 
 /***/ }),
-/* 32 */
+/* 35 */
 /***/ (function(module, exports) {
 
 /**
@@ -50511,7 +50819,7 @@ module.exports = function(THREE, EffectComposer) {
 };
 
 /***/ }),
-/* 33 */
+/* 36 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -51182,82 +51490,106 @@ module.exports = function (THREE) {
 };
 
 /***/ }),
-/* 34 */
-/***/ (function(module, exports) {
-
-module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nvarying vec2 f_uv; // texture coordinate\nvarying vec3 f_position;\n\n// Isolate the bright moments of the image\nvoid main() {\n    vec4 col = texture2D(tDiffuse, f_uv);\n\n    float gray = dot(col.rgb, vec3(0.299, 0.587, 0.114));\n\n    gl_FragColor = (1.0 - step(gray, u_amount)) * col;\n}"
-
-/***/ }),
-/* 35 */
+/* 37 */
 /***/ (function(module, exports) {
 
 module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nvarying vec2 f_uv;\n\n// tDiffuse is a special uniform sampler that THREE.js will bind the previously rendered frame to\n\nvoid main() {\n    vec4 col = texture2D(tDiffuse, f_uv);\n    float gray = dot(col.rgb, vec3(0.299, 0.587, 0.114));\n\n    col.rgb = vec3(gray, gray, gray) * (u_amount) + col.rgb * (1.0 - u_amount);\n\n    gl_FragColor = col;\n}   "
 
 /***/ }),
-/* 36 */
+/* 38 */
 /***/ (function(module, exports) {
 
 module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nvarying vec2 f_uv;\n\n// tDiffuse is a special uniform sampler that THREE.js will bind the previously rendered frame to\n// References\n\nfloat noise_gen1(float x) {\n\treturn fract(sin(x) * 54582.5453);\n}\n\nfloat noise_gen2(float x, float y) {\n    return fract(sin(dot(vec2(x, y), vec2(12.9898, 78.233))) * 43758.5453);\n}\n\nvoid main() {\n    vec4 col = texture2D(tDiffuse, f_uv);\n    float r = noise_gen2(f_uv.x, f_uv.y);\n    float rr = noise_gen1(f_uv.x * f_uv.y);\n\n\n    float gray = dot(col.rgb, vec3(0.299, 0.587, 0.114));\n\tfloat s = sin((f_uv.x + f_uv.y) * u_amount) + 1.0;\n\tfloat ss = sin((f_uv.x - f_uv.y) * u_amount) + 1.0;\n\n    if (r >= (s + ss) / 4.0 || gray >= r) {\n    \tcol.rgb = vec3(1.0, 1.0, 1.0);\n    }\n\n    gl_FragColor = col;\n}   \n\n"
 
 /***/ }),
-/* 37 */
+/* 39 */
 /***/ (function(module, exports) {
 
 module.exports = "\nuniform sampler2D texture;\nuniform int u_useTexture;\nuniform vec3 u_albedo;\nuniform vec3 u_ambient;\nuniform vec3 u_lightPos;\nuniform vec3 u_lightCol;\nuniform float u_lightIntensity;\n\nvarying vec3 f_position;\nvarying vec3 f_normal;\nvarying vec2 f_uv;\n\nvoid main() {\n    vec4 color = vec4(u_albedo, 1.0);\n    \n    if (u_useTexture == 1) {\n        color = texture2D(texture, f_uv);\n    }\n\n    float d = clamp(dot(f_normal, normalize(u_lightPos - f_position)), 0.0, 1.0);\n\n    gl_FragColor = vec4(d * color.rgb * u_lightCol * u_lightIntensity + u_ambient, 1.0);\n}"
 
 /***/ }),
-/* 38 */
+/* 40 */
 /***/ (function(module, exports) {
 
 module.exports = "\nvarying vec2 f_uv;\nvarying vec3 f_normal;\nvarying vec3 f_position;\n\n// uv, position, projectionMatrix, modelViewMatrix, normal\nvoid main() {\n    f_uv = uv;\n    f_normal = normal;\n    f_position = position;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n}"
 
 /***/ }),
-/* 39 */
+/* 41 */
 /***/ (function(module, exports) {
 
 module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nvarying vec2 f_uv;\n\n// tDiffuse is a special uniform sampler that THREE.js will bind the previously rendered frame to\n\nvoid main() {\n    vec4 col = texture2D(tDiffuse, f_uv);\n\n    col = clamp(col, vec4(0.0), vec4(1.0));\n    col = pow(col, vec4(vec3(1.0 / u_amount), 1.0));\n\n    gl_FragColor = col;\n}   "
 
 /***/ }),
-/* 40 */
+/* 42 */
 /***/ (function(module, exports) {
 
 module.exports = "#define M_PI 3.14159265\n\nuniform sampler2D texture;\nuniform int u_useTexture;\nuniform vec3 u_albedo;\nuniform vec3 u_ambient;\nuniform vec3 u_lightPos;\nuniform vec3 u_lightCol;\nuniform float u_lightIntensity;\n\nuniform vec3 u_camPos;\n\nvarying vec3 f_position;\nvarying vec3 f_normal;\nvarying vec2 f_uv;\n\nvarying vec3 look;\n\n\n// https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl\nfloat rand(vec2 co){\n    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);\n}\n\nfloat noise_gen2(float x, float y, float z) {\n    return fract(sin(dot(vec3(x, y, z), vec3(12.9898, 78.233, 43.29179))) * 43758.5453);\n}\n\n// Cosine Interpolation\nfloat cerp (float a, float b, float x) {\n    float y = x * M_PI;\n    y = (1.0 - cos(y)) * 0.5; // y is inbetween[0, 1]\n    return a * (1.0 - y) + b * y; // map y between a and b\n}\n\nfloat smoothNoise(float x, float y, float z) {\n    float center = noise_gen2(x, y, z) / 8.0;\n    float adj = (noise_gen2(x + 1., y, z) + noise_gen2(x - 1., y, z)\n               + noise_gen2(x, y + 1., z) + noise_gen2(x, y - 1., z)\n               + noise_gen2(x, y, z + 1.) + noise_gen2(z, y, z - 1.)) / 16.0;\n    float diag = (noise_gen2(x + 1., y + 1., z)\n                + noise_gen2(x + 1., y - 1., z)\n                + noise_gen2(x - 1., y + 1., z)\n                + noise_gen2(x - 1., y - 1., z)\n                + noise_gen2(x + 1., y, z + 1.)\n                + noise_gen2(x + 1., y, z - 1.)\n                + noise_gen2(x - 1., y, z + 1.)\n                + noise_gen2(x - 1., y, z - 1.)\n                + noise_gen2(x, y + 1., z + 1.)\n                + noise_gen2(x, y + 1., z - 1.)\n                + noise_gen2(x, y - 1., z + 1.)\n                + noise_gen2(x, y - 1., z - 1.)) / 32.0;\n    float corners = (noise_gen2(x + 1., y + 1., z + 1.)\n                    + noise_gen2(x + 1., y + 1., z - 1.) \n                    + noise_gen2(x + 1., y - 1., z + 1.) \n                    + noise_gen2(x + 1., y - 1., z - 1.) \n                    + noise_gen2(x - 1., y + 1., z + 1.) \n                    + noise_gen2(x - 1., y + 1., z - 1.) \n                    + noise_gen2(x - 1., y - 1., z + 1.) \n                    + noise_gen2(x - 1., y - 1., z - 1.)) / 64.0;\n        \n    return center + adj + diag + corners;\n}\n\nfloat interpSmoothNoise3D(float x, float y, float z) {\n    // Get integer and fraction portions of x, y, z\n    float intX = floor(x);\n    float fractX = fract(x);\n    float intY = floor(y);\n    float fractY = fract(y);\n    float intZ = floor(z);\n    float fractZ = fract(z);\n\n\n    //  Point of the cube\n    float c000 = noise_gen2(intX,     intY,     intZ     );\n    float c001 = noise_gen2(intX,     intY,     intZ + 1. );\n    float c010 = noise_gen2(intX,     intY + 1., intZ     );\n    float c011 = noise_gen2(intX,     intY + 1., intZ + 1. );\n    float c100 = noise_gen2(intX + 1., intY,     intZ     );\n    float c101 = noise_gen2(intX + 1., intY,     intZ + 1. );\n    float c110 = noise_gen2(intX + 1., intY + 1., intZ     );\n    float c111 = noise_gen2(intX + 1., intY + 1., intZ + 1. );\n\n    // //  Point of the cube\n    // float c000 = smoothNoise(intX,     intY,     intZ     );\n    // float c001 = smoothNoise(intX,     intY,     intZ + 1. );\n    // float c010 = smoothNoise(intX,     intY + 1., intZ     );\n    // float c011 = smoothNoise(intX,     intY + 1., intZ + 1. );\n    // float c100 = smoothNoise(intX + 1., intY,     intZ     );\n    // float c101 = smoothNoise(intX + 1., intY,     intZ + 1. );\n    // float c110 = smoothNoise(intX + 1., intY + 1., intZ     );\n    // float c111 = smoothNoise(intX + 1., intY + 1., intZ + 1. );\n\n    // Interpolate over X\n    float c00 = cerp(c000, c100, fractX);\n    float c01 = cerp(c001, c101, fractX);\n    float c10 = cerp(c010, c110, fractX);\n    float c11 = cerp(c011, c111, fractX);\n\n    // Interpolate over Y\n    float c0 = cerp(c00, c10, fractY);\n    float c1 = cerp(c01, c11, fractY);\n\n    // Interpolate over Z\n    return cerp(c0, c1, fractZ);\n}\n\n\n\nfloat fbm3D(float x, float y, float z) {\n    float total = 0.0;\n    float persistance = 0.5;\n    //int octaves = 4;\n\n\n    for (int i = 0; i < 4; i++) {\n        float frequency = float(i * i);\n        float amplitude = pow(persistance, 1.0); //pow(persistance, i);\n\n        total += interpSmoothNoise3D(x * frequency, y * frequency, z * frequency) * amplitude;\n    }\n\n    return total;\n}\n\n\nvoid main() {\n    vec4 color = vec4(u_albedo, 1.0);\n    \n    if (u_useTexture == 1) {\n        color = texture2D(texture, f_uv);\n    }\n\n    float d = clamp(dot(f_normal, normalize(u_lightPos - f_position)), 0.0, 1.0);\n\n    vec3 look = -normalize(f_position - u_camPos);\n\n    float ctrl_turb = fbm3D(f_position.x, f_position.y, f_position.z);\n\n    // if (clamp(dot(f_normal, look), 0.0, 1.0) < 0.4) {\n    // \tgl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);\n    // } else {\n\t   //  d = floor(d * 4.0) * 0.25; // 10 Bins\t\t\n\t   //  gl_FragColor = vec4(d * color.rgb * u_lightCol * u_lightIntensity + u_ambient, 1.0);\n    // }\n\n    //gl_FragColor = vec4(1.0);\n\n    gl_FragColor = vec4(ctrl_turb, ctrl_turb, ctrl_turb, 1.0);\n}"
 
 /***/ }),
-/* 41 */
+/* 43 */
 /***/ (function(module, exports) {
 
 module.exports = "\nvarying vec2 f_uv;\nvarying vec3 f_normal;\nvarying vec3 f_position;\nvarying vec3 look;\n\n// uv, position, projectionMatrix, modelViewMatrix, normal\nvoid main() {\n    f_uv = uv;\n    f_normal = normal;\n    f_position = position;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n\n\n    look = f_position;\n\n}"
 
 /***/ }),
-/* 42 */
+/* 44 */
 /***/ (function(module, exports) {
 
 module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nvarying vec2 f_uv;\n\n// tDiffuse is a special uniform sampler that THREE.js will bind the previously rendered frame to\n\nfloat noise_gen2(float x, float y) {\n    return fract(sin(dot(vec2(x, y), vec2(12.9898, 78.233))) * 43758.5453);\n}\n\n\nvoid main() {\n    vec4 col = texture2D(tDiffuse, f_uv);\n    float gray = dot(col.rgb, vec3(0.299, 0.587, 0.114));\n\n    // Generate noise here vs in the vertex shader makes a difference for some reason\n    float noise = noise_gen2(f_uv.x, f_uv.y);\n    \n    if (gray < noise) {\n    \tcol.rgb = vec3(0.0, 0.0, 0.0);\n    } else {\n    \tcol.rgb = vec3(1.0, 1.0, 1.0);\n    }\n\n    gl_FragColor = col;\n}   \n\n"
 
 /***/ }),
-/* 43 */
+/* 45 */
 /***/ (function(module, exports) {
 
 module.exports = "\nuniform sampler2D tDiffuse;\nuniform sampler2D tClone;\nuniform float u_amount;\nvarying vec2 f_uv; // texture coordinate\nvarying vec3 f_position;\n\n// Isolate the bright moments of the image\nvoid main() {\n    \n    vec4 brightcol = texture2D(tDiffuse, f_uv);\n    vec4 origcol = texture2D(tClone, f_uv);\n    \n    gl_FragColor = vec4(origcol.rgb + brightcol.rgb, 1.0) ;\n}"
 
 /***/ }),
-/* 44 */
+/* 46 */
+/***/ (function(module, exports) {
+
+module.exports = "\nuniform sampler2D tDiffuse;\nuniform sampler2D tClone;\nuniform float u_amount;\nvarying vec2 f_uv; // texture coordinate\nvarying vec3 f_position;\n\n// Isolate the bright moments of the image\nvoid main() {\n    \n    vec4 brightcol = texture2D(tDiffuse, f_uv);\n    vec4 origcol = texture2D(tClone, f_uv);\n    \n    gl_FragColor = vec4((origcol.rgb + brightcol.rgb) / 2.0, 1.0) ;\n}"
+
+/***/ }),
+/* 47 */
 /***/ (function(module, exports) {
 
 module.exports = "\nuniform sampler2D texture;\nuniform int u_useTexture;\nuniform vec3 u_albedo;\nuniform vec3 u_ambient;\nuniform vec3 u_lightPos;\nuniform vec3 u_lightCol;\nuniform float u_lightIntensity;\n\nuniform vec3 u_camPos;\n\nvarying vec3 f_position;\nvarying vec3 f_normal;\nvarying vec2 f_uv;\n\nvarying vec3 look;\n\nvoid main() {\n    vec4 color = vec4(u_albedo, 1.0);\n    \n    if (u_useTexture == 1) {\n        color = texture2D(texture, f_uv);\n    }\n\n    float d = clamp(dot(f_normal, normalize(u_lightPos - f_position)), 0.0, 1.0);\n\n    vec3 look = -normalize(f_position - u_camPos);\n    if (clamp(dot(f_normal, look), 0.0, 1.0) < 0.4) {\n    \tgl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);\n    } else {\n\t    d = floor(d * 4.0) * 0.25; // 10 Bins\t\t\n\t    gl_FragColor = vec4(d * color.rgb * u_lightCol * u_lightIntensity + u_ambient, 1.0);\n    }\n}"
 
 /***/ }),
-/* 45 */
+/* 48 */
 /***/ (function(module, exports) {
 
 module.exports = "\nvarying vec2 f_uv;\nvarying vec3 f_normal;\nvarying vec3 f_position;\nvarying vec3 look;\n\n// uv, position, projectionMatrix, modelViewMatrix, normal\nvoid main() {\n    f_uv = uv;\n    f_normal = normal;\n    f_position = position;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n\n    look = f_position;\n\n}"
 
 /***/ }),
-/* 46 */
+/* 49 */
 /***/ (function(module, exports) {
 
 module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_edge0;\nuniform float u_edge1;\nuniform float u_width;\nuniform float u_height;\nvarying vec2 f_uv;\n\n// tDiffuse is a special uniform sampler that THREE.js will bind the previously rendered frame to\n// References:\n//     Smooth Step: http://www.shaderific.com/glsl-functions/\n\nvoid main() {\n    vec4 col = texture2D(tDiffuse, f_uv);\n\n    vec2 centerToFrag = f_uv - vec2(0.5, 0.5);\n    float len = length(centerToFrag) / 0.707;\n    \n    float result = smoothstep(u_edge0, u_edge1, 1.0 - len);\n    gl_FragColor = vec4(result * col.rgb, 1.0);\n}   "
+
+/***/ }),
+/* 50 */
+/***/ (function(module, exports) {
+
+module.exports = "\n#define M_PI 3.14159265\n\nuniform sampler2D texture;\nuniform int u_useTexture;\nuniform vec3 u_albedo;\nuniform vec3 u_ambient;\nuniform vec3 u_lightPos;\nuniform vec3 u_lightCol;\nuniform float u_lightIntensity;\n\nuniform vec3 u_camPos;\n\nvarying vec3 f_position;\nvarying vec3 f_normal;\nvarying vec2 f_uv;\n\nvarying vec3 look;\n\n// void main() {\n//     vec4 color = vec4(u_albedo, 1.0);\n    \n//     if (u_useTexture == 1) {\n//         color = texture2D(texture, f_uv);\n//     }\n\n//     float d = clamp(dot(f_normal, normalize(u_lightPos - f_position)), 0.0, 1.0);\n\n//     vec3 look = -normalize(f_position - u_camPos);\n\n//     if (clamp(dot(f_normal, look), 0.0, 1.0) < 0.4) {\n//     \tgl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);\n//     } else {\n// \t    d = floor(d * 4.0) * 0.25; // 10 Bins\t\t\n// \t    gl_FragColor = vec4(d * color.rgb * u_lightCol * u_lightIntensity + u_ambient, 1.0);\n//     }\n// }\n\n\n// https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl\nfloat rand(vec2 co){\n    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);\n}\n\nfloat noise_gen2(float x, float y, float z) {\n    return fract(sin(dot(vec3(x, y, z), vec3(12.9898, 78.233, 43.29179))) * 43758.5453);\n}\n\n// Cosine Interpolation\nfloat cerp (float a, float b, float x) {\n    float y = x * M_PI;\n    y = (1.0 - cos(y)) * 0.5; // y is inbetween[0, 1]\n    return a * (1.0 - y) + b * y; // map y between a and b\n}\n\nfloat smoothNoise(float x, float y, float z) {\n    float center = noise_gen2(x, y, z) / 8.0;\n    float adj = (noise_gen2(x + 1., y, z) + noise_gen2(x - 1., y, z)\n               + noise_gen2(x, y + 1., z) + noise_gen2(x, y - 1., z)\n               + noise_gen2(x, y, z + 1.) + noise_gen2(z, y, z - 1.)) / 16.0;\n    float diag = (noise_gen2(x + 1., y + 1., z)\n                + noise_gen2(x + 1., y - 1., z)\n                + noise_gen2(x - 1., y + 1., z)\n                + noise_gen2(x - 1., y - 1., z)\n                + noise_gen2(x + 1., y, z + 1.)\n                + noise_gen2(x + 1., y, z - 1.)\n                + noise_gen2(x - 1., y, z + 1.)\n                + noise_gen2(x - 1., y, z - 1.)\n                + noise_gen2(x, y + 1., z + 1.)\n                + noise_gen2(x, y + 1., z - 1.)\n                + noise_gen2(x, y - 1., z + 1.)\n                + noise_gen2(x, y - 1., z - 1.)) / 32.0;\n    float corners = (noise_gen2(x + 1., y + 1., z + 1.)\n                    + noise_gen2(x + 1., y + 1., z - 1.) \n                    + noise_gen2(x + 1., y - 1., z + 1.) \n                    + noise_gen2(x + 1., y - 1., z - 1.) \n                    + noise_gen2(x - 1., y + 1., z + 1.) \n                    + noise_gen2(x - 1., y + 1., z - 1.) \n                    + noise_gen2(x - 1., y - 1., z + 1.) \n                    + noise_gen2(x - 1., y - 1., z - 1.)) / 64.0;\n        \n    return center + adj + diag + corners;\n}\n\nfloat interpSmoothNoise3D(float x, float y, float z) {\n    // Get integer and fraction portions of x, y, z\n    float intX = floor(x);\n    float fractX = fract(x);\n    float intY = floor(y);\n    float fractY = fract(y);\n    float intZ = floor(z);\n    float fractZ = fract(z);\n\n    //  Point of the cube\n    float c000 = noise_gen2(intX,     intY,     intZ     );\n    float c001 = noise_gen2(intX,     intY,     intZ + 1. );\n    float c010 = noise_gen2(intX,     intY + 1., intZ     );\n    float c011 = noise_gen2(intX,     intY + 1., intZ + 1. );\n    float c100 = noise_gen2(intX + 1., intY,     intZ     );\n    float c101 = noise_gen2(intX + 1., intY,     intZ + 1. );\n    float c110 = noise_gen2(intX + 1., intY + 1., intZ     );\n    float c111 = noise_gen2(intX + 1., intY + 1., intZ + 1. );\n\n    // //  Point of the cube\n    // float c000 = smoothNoise(intX,     intY,     intZ     );\n    // float c001 = smoothNoise(intX,     intY,     intZ + 1. );\n    // float c010 = smoothNoise(intX,     intY + 1., intZ     );\n    // float c011 = smoothNoise(intX,     intY + 1., intZ + 1. );\n    // float c100 = smoothNoise(intX + 1., intY,     intZ     );\n    // float c101 = smoothNoise(intX + 1., intY,     intZ + 1. );\n    // float c110 = smoothNoise(intX + 1., intY + 1., intZ     );\n    // float c111 = smoothNoise(intX + 1., intY + 1., intZ + 1. );\n\n    // Interpolate over X\n    float c00 = cerp(c000, c100, fractX);\n    float c01 = cerp(c001, c101, fractX);\n    float c10 = cerp(c010, c110, fractX);\n    float c11 = cerp(c011, c111, fractX);\n\n    // Interpolate over Y\n    float c0 = cerp(c00, c10, fractY);\n    float c1 = cerp(c01, c11, fractY);\n\n    // Interpolate over Z\n    return cerp(c0, c1, fractZ);\n}\n\nfloat fbm3D(float x, float y, float z) {\n    float total = 0.0;\n    float persistance = 0.5;\n    // int octaves = 4;\n\n\n    for (int i = 0; i < 4; i++) {\n        float frequency = float(i * i);\n        float amplitude = pow(persistance, 1.0); //pow(persistance, i);\n\n        total += interpSmoothNoise3D(x * frequency, y * frequency, z * frequency) * amplitude;\n    }\n\n    return total;\n}\n\nfloat map(float value, float start1, float stop1, float start2, float stop2) {\n    float decimal = (value - start1)/(stop1 - start1);\n    return decimal * (stop2 - start2) + start2;\n}\n\nfloat decimal(float value, float start, float stop) {\n    return (value - start)/(stop - start);\n}\n\n// Reference \n// https://gist.github.com/gre/1650294\nfloat easeOutQuint (float t) { \n    return 1.0 + (t - 1.0) * t * t * t * t; \n}\n\nfloat easeInQuint (float t) {\n    return t * t * t * t * t;\n}\n\nfloat easeInOutQuint (float t) { \n    return t < 0.5 ? 16.0 * t * t * t * t * t : 1.0 + 16.0 * (t - 1.0) * t * t * t * t; \n}\n\nfloat easeInOutCubic (float t) { \n    return t < 0.5 ? 4.0 * t * t * t : (t - 1.0) * (2.0 * t - 2.0) * (2.0 * t - 2.0 ) + 1.0;\n}\n\nvoid main() {\n    vec4 color = vec4(u_albedo, 1.0);\n    \n    if (u_useTexture == 1) {\n        color = texture2D(texture, f_uv);\n    }\n\n    float d = clamp(dot(f_normal, normalize(u_lightPos - f_position)), 0.0, 1.0);\n\n    vec3 look = -normalize(f_position - u_camPos);\n\n    float ctrl_turb = fbm3D(f_position.x, f_position.y, f_position.z);\n    float edge = clamp(dot(f_normal, look), 0.0, 1.0);\n\n    vec3 c = d * color.rgb * u_lightCol * u_lightIntensity + u_ambient;\n\n    if (edge < 0.3) {\n        float temp = easeOutQuint(decimal(edge, 0.0, 0.3));\n        vec3 c = d * color.rgb * u_lightCol * u_lightIntensity + u_ambient;\n        gl_FragColor = vec4(temp * c, 1.0);\n    } else {\n        float gray = dot(c, vec3(0.299, 0.587, 0.114));\n\n        //d = floor(d * 4.0) * 0.25;  \n        d = easeInOutCubic(d);\n\n        vec3 c = d * color.rgb * u_lightCol * u_lightIntensity + u_ambient;\n\n        gl_FragColor = vec4((ctrl_turb * 0.6 * gray) + c, 1.0);\n    }\n}"
+
+/***/ }),
+/* 51 */
+/***/ (function(module, exports) {
+
+module.exports = "\nuniform sampler2D tDiffuse;\nuniform float u_amount;\nvarying vec2 f_uv;\n\n// tDiffuse is a special uniform sampler that THREE.js will bind the previously rendered frame to\n// References\n\nfloat noise_gen1(float x) {\n    return fract(sin(x) * 54582.5453);\n}\n\nfloat noise_gen2(float x, float y) {\n    return fract(sin(dot(vec2(x, y), vec2(12.9898, 78.233))) * 43758.5453);\n}\n\nvoid main() {\n     vec4 color = texture2D(tDiffuse, f_uv);\n     float r = noise_gen2(f_uv.x, f_uv.y);\n     float rr = noise_gen1(f_uv.x * f_uv.y);\n\n\n    float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));\n    float s = sin((f_uv.x + f_uv.y) * u_amount) + 1.0;\n    float ss = sin((f_uv.x - f_uv.y) * u_amount) + 1.0;\n\n    if (!(r >= (s + ss) / 4.0)) {\n        color.rgb = color.rgb * 0.95; // vec3(1.0, 1.0, 1.0);\n    }\n\n    gl_FragColor = color;\n\n\n\n    //gl_FragColor = vec4(r, r, r, 1.0); \n}   \n\n"
+
+/***/ }),
+/* 52 */
+/***/ (function(module, exports) {
+
+module.exports = "\n// we use this vertex shader for the post process steps. All we do is copy the uv value and set position appropriately\n\nvarying vec2 f_uv;\nvarying vec3 f_position;\n\nvoid main() {\n    f_uv = uv;\n    f_position = position;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n}\n\n\n"
+
+/***/ }),
+/* 53 */
+/***/ (function(module, exports) {
+
+module.exports = "\nvarying vec2 f_uv;\nvarying vec3 f_normal;\nvarying vec3 f_position;\nvarying vec3 look;\n\n// uv, position, projectionMatrix, modelViewMatrix, normal\nvoid main() {\n    f_uv = uv;\n    f_normal = normal;\n    f_position = position;\n    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n\n    look = f_position;\n\n}"
 
 /***/ })
 /******/ ]);
